@@ -1,8 +1,11 @@
 
-name: CORA Docker CI/CD
+name: CORA CI
 
 on:
   push:
+    branches:
+      - main
+  pull_request:
     branches:
       - main
   workflow_dispatch:
@@ -11,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  build-and-push:
+  docker-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,38 +24,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push image
+      - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
-          tags: gautamkadam/cora-project:latest
-
-  deploy-to-ec2:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Deploy CORA on EC2
-        uses: appleboy/ssh-action@v1.2.2
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            set -e
-            docker pull gautamkadam/cora-project:latest
-            docker stop cora-project || true
-            docker rm cora-project || true
-            docker run -d \
-              --name cora-project \
-              --restart unless-stopped \
-              -p 8001:8000 \
-              gautamkadam/cora-project:latest
-            docker ps
+          push: false
+          tags: cora-project:latest
